@@ -41,7 +41,7 @@ schedule.each { |i|
     next if j["scheduleTypeName"] != "通常勤務"
     employee_key = j["employeeKey"]
     employee = employee_table[employee_key]
-    next if employee.nil? || employee["divisionCode"] != "hon_02"
+    next if employee.nil? || employee["divisionCode"] != division
     tr = timerecord_table.dig(j["date"], employee_key)
     if tr.nil?
       errors[employee_key] << "#{j['date']}の打刻がありません"
