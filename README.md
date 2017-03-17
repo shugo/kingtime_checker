@@ -1,5 +1,8 @@
 ## kingtime_checker
 
+KING OF TIME上の打刻漏れ・打刻ミス（連続した出勤打刻など）をチェックして
+通知するツール。
+
 ### 使い方
 
 1. 以下のようなconfig.jsonを作成する。
