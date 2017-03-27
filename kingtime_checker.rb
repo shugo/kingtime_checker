@@ -1,29 +1,37 @@
 require "open-uri"
 require "json"
 require "mail"
+require "mail-iso-2022-jp"
+require "optparse"
 
 config = JSON.load(File.read("config.json"))
 api_token = config["api_token"]
-division = config["division"]
-admin = config["admin"]
+divisions = config["divisions"].each_with_object({}) { |division, h|
+  h[division["code"]] = division
+}
+
+options = ARGV.getopts("d", "date:")
+debug = options["d"]
+date = options["date"] || (Time.now - 24 * 60 * 60).strftime("%F")
 
 call_api = ->(path, params) {
-  uri = "https://api.kingtime.jp/v1.0" + path +
-    "?" + URI.encode_www_form(params)
-  s = open(uri, "Authorization" => "Bearer #{api_token}", &:read)
+  file = ARGV.shift
+  if file
+    s = File.read(file)
+  else
+    uri = "https://api.kingtime.jp/v1.0" + path +
+      "?" + URI.encode_www_form(params)
+    s = open(uri, "Authorization" => "Bearer #{api_token}", &:read)
+  end
   JSON.load(s)
 }
 
-t = Time.now - 24 * 60 * 60
-date = t.strftime("%F")
 
 employees = call_api.("/employees", "additionalFields" => "emailAddresses")
 schedule = call_api.("/daily-schedules/",
-                     "division" => division, "ondivision" => true,
                      "start" => date, "end" => date)
 exit if schedule.nil?
 timerecord = call_api.("/daily-workings/timerecord",
-                       "division" => division, "ondivision" => true,
                        "start" => date, "end" => date)
 
 employee_table = employees.each_with_object({}) { |i, h|
@@ -41,7 +49,7 @@ schedule.each { |i|
     next if j["scheduleTypeName"] != "通常勤務"
     employee_key = j["employeeKey"]
     employee = employee_table[employee_key]
-    next if employee.nil? || employee["divisionCode"] != division
+    next if employee.nil? || !divisions.key?(employee["divisionCode"])
     tr = timerecord_table.dig(j["date"], employee_key)
     if tr.nil?
       errors[employee_key] << "#{j['date']}の打刻がありません"
@@ -57,10 +65,11 @@ schedule.each { |i|
 }
 errors.each { |employee_key, errs|
   employee = employee_table[employee_key]
-  mail = Mail.new {
-    from admin["email"]
+  division = divisions[employee["divisionCode"]]
+  mail = Mail.new(charset: "iso-2022-jp") {
+    from division.dig("leader", "email")
     to employee["emailAddresses"][0]
-    cc admin["email"]
+    cc division.dig("leader", "email")
     subject "打刻確認のお願い"
     body <<EOF
 #{employee["lastName"]}さん
@@ -72,7 +81,10 @@ EOF
   }
   mail.delivery_method(:smtp, address: "localhost", port: 25,
                        enable_starttls_auto: false)
-  mail.charset = "utf-8"
-  mail.content_transfer_encoding = "8bit"
-  mail.deliver!
+  if debug
+    puts
+    puts mail.encoded
+  else
+    mail.deliver!
+  end
 }

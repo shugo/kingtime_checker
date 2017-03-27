@@ -10,10 +10,22 @@ KING OF TIME上の打刻漏れ・打刻ミス（連続した出勤打刻など�
 ```
 {
   "api_token": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-  "division": "009",
-  "admin": {
-    "email": "suzuki@example.com"
-  }
+  "divisions": [
+    {
+      "code": "009",
+      "leader": {
+        "fullname": "Ichiro Suzuki",
+        "email": "suzuki@example.com"
+      }
+    },
+    {
+      "code": "010",
+      "leader": {
+        "fullname": "Taro Yamada",
+        "email": "yamada@exampel.com"
+      }
+    }
+  ]
 }
 ```
 
