@@ -33,6 +33,7 @@ schedule = call_api.("/daily-schedules/",
 exit if schedule.nil?
 timerecord = call_api.("/daily-workings/timerecord",
                        "start" => date, "end" => date)
+exit if timerecord.nil?
 
 employee_table = employees.each_with_object({}) { |i, h|
   h[i["key"]] = i
